@@ -1,4 +1,4 @@
-package com.promtzal.backend.lexico;
+package com.promptzal.backend.lexico;
 
 import com.promptzal.backend.errores.ErrorCompilador;
 import com.promptzal.backend.errores.GestorErrores;

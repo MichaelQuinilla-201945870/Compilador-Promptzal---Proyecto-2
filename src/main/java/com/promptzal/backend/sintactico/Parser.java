@@ -6,14 +6,35 @@ import com.promptzal.backend.errores.GestorErrores;
 import com.promptzal.backend.lexico.TipoToken;
 import com.promptzal.backend.lexico.Token;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 public class Parser {
+
+    // tokens de sincronización, según el contexto donde ocurrió el error
+
+    private static final Set<TipoToken> SYNC_DIRECTIVAS = EnumSet.of(
+            TipoToken.DIRECTIVA, TipoToken.AGENTE, TipoToken.EJECUTAR, TipoToken.EXPORTAR);
+
+    private static final Set<TipoToken> SYNC_CUERPO = EnumSet.of(
+            TipoToken.AGENTE, TipoToken.LLAVE_C, TipoToken.COMANDO_IA,
+            TipoToken.VARIABLE, TipoToken.EJECUTAR, TipoToken.EXPORTAR);
+
+    private static final Set<TipoToken> SYNC_AGENTE = EnumSet.of(
+            TipoToken.AGENTE, TipoToken.EJECUTAR, TipoToken.EXPORTAR);
+
+    private static final Set<TipoToken> SYNC_EJECUCIONES = EnumSet.of(
+            TipoToken.EJECUTAR, TipoToken.EXPORTAR);
+
+    private static final Set<TipoToken> SYNC_EXPORTAR = EnumSet.noneOf(TipoToken.class);
 
     private final List<Token> tokens;
     private final GestorErrores gestorErrores;
     private int posicion = 0;
-    private Token actual;           // el token que se está mirando (vista previa de 1)
+    private Token actual;                    // token que se está mirando (vista previa de 1)
+    private int posicionUltimoError = -1;    // evita reportar dos veces el mismo token
+    private int erroresSintacticos = 0;
 
     public Parser(List<Token> tokens, GestorErrores gestorErrores) {
         this.tokens = tokens;
@@ -21,14 +42,18 @@ public class Parser {
         this.actual = tokens.get(0);
     }
 
-    // Punto de entrada. Devuelve el AST, o null si hubo un error sintáctico.
+    // Devuelve el AST (parcial si hubo errores). Los errores quedan en el gestor.
     public Programa analizar() {
         try {
             return programa();
-        } catch (ErrorSintacticoException e) {
-            gestorErrores.agregar(e.getError());
+        } catch (ErrorSintacticoException e) {   // red de seguridad
+            registrar(e);
             return null;
         }
+    }
+
+    public boolean huboErrores() {
+        return erroresSintacticos > 0;
     }
 
     // Utilidades
@@ -70,32 +95,57 @@ public class Parser {
         return t == TipoToken.EOF ? "fin de archivo" : t.name();
     }
 
-    // Auxiliar (no es un no terminal): consume un ID y lo guarda como Referencia.
+    //Auxiliar (no es un no terminal): consume un ID y lo guarda como Referencia.
     private Referencia consumirReferencia() {
         Token id = consumir(TipoToken.ID);
         return new Referencia(id.getLexema(), id.getFila(), id.getColumna());
     }
 
-    // 1. <programa> -> <directivas> <agentes> <ejecuciones> <exportar> EOF
+    // Recuperación de errores
 
+    // Reporta el error, salvo que ya se haya reportado uno en este mismo token.
+    private void registrar(ErrorSintacticoException e) {
+        if (posicion == posicionUltimoError) {
+            return;
+        }
+        posicionUltimoError = posicion;
+        erroresSintacticos++;
+        gestorErrores.agregar(e.getError());
+    }
+
+    // Modo pánico: reporta y descarta tokens hasta uno de sincronización (o EOF).
+    private void recuperar(ErrorSintacticoException e, Set<TipoToken> sincronizacion) {
+        registrar(e);
+        while (!es(TipoToken.EOF) && !sincronizacion.contains(actual.getTipo())) {
+            avanzar();
+        }
+    }
+
+    // 1. <programa> -> <directivas> <agentes> <ejecuciones> <exportar> EOF
     private Programa programa() {
         List<Directiva> directivas = directivas();
         List<Agente> agentes = agentes();
         List<Referencia> ejecuciones = ejecuciones();
         List<Referencia> exportados = exportar();
-        consumir(TipoToken.EOF);
+        try {
+            consumir(TipoToken.EOF);
+        } catch (ErrorSintacticoException e) {
+            registrar(e);
+        }
         return new Programa(directivas, agentes, ejecuciones, exportados);
     }
 
     // 2. <directivas> -> DIRECTIVA <cadena> <directivas> | ε
-    // Recursión por la derecha = bucle while (mientras el token esté en FIRST).
-
     private List<Directiva> directivas() {
         List<Directiva> lista = new ArrayList<>();
         while (es(TipoToken.DIRECTIVA)) {
-            Token d = consumir(TipoToken.DIRECTIVA);
-            String valor = cadena();
-            lista.add(new Directiva(d.getLexema(), valor, d.getFila(), d.getColumna()));
+            try {
+                Token d = consumir(TipoToken.DIRECTIVA);
+                String valor = cadena();
+                lista.add(new Directiva(d.getLexema(), valor, d.getFila(), d.getColumna()));
+            } catch (ErrorSintacticoException e) {
+                recuperar(e, SYNC_DIRECTIVAS);
+            }
         }
         return lista;
     }
@@ -103,7 +153,7 @@ public class Parser {
     // 3. <agentes> -> <agente> <mas_agentes>
     private List<Agente> agentes() {
         List<Agente> lista = new ArrayList<>();
-        lista.add(agente());
+        intentarAgente(lista);
         masAgentes(lista);
         return lista;
     }
@@ -111,7 +161,16 @@ public class Parser {
     // 4. <mas_agentes> -> <agente> <mas_agentes> | ε
     private void masAgentes(List<Agente> lista) {
         while (es(TipoToken.AGENTE)) {
+            intentarAgente(lista);
+        }
+    }
+
+    //Punto de recuperación: un agente dañado en su cabecera se descarta completo.
+    private void intentarAgente(List<Agente> lista) {
+        try {
             lista.add(agente());
+        } catch (ErrorSintacticoException e) {
+            recuperar(e, SYNC_AGENTE);
         }
     }
 
@@ -120,10 +179,22 @@ public class Parser {
         consumir(TipoToken.AGENTE);
         Token nombre = consumir(TipoToken.ID);
         consumir(TipoToken.LLAVE_A);
-        String contexto = contexto();
+
+        String contexto = "";
+        try {
+            contexto = contexto();
+        } catch (ErrorSintacticoException e) {
+            recuperar(e, SYNC_CUERPO);
+        }
+
         List<Variable> variables = variables();
         List<Comando> comandos = comandos();
-        consumir(TipoToken.LLAVE_C);
+
+        try {
+            consumir(TipoToken.LLAVE_C);
+        } catch (ErrorSintacticoException e) {
+            registrar(e);       // falta '}': se reporta, pero se conserva el agente
+        }
         return new Agente(nombre.getLexema(), contexto, variables, comandos,
                 nombre.getFila(), nombre.getColumna());
     }
@@ -139,19 +210,23 @@ public class Parser {
     private List<Variable> variables() {
         List<Variable> lista = new ArrayList<>();
         while (es(TipoToken.VARIABLE)) {
-            consumir(TipoToken.VARIABLE);
-            Token id = consumir(TipoToken.ID);
-            consumir(TipoToken.IGUAL);
-            Expresion valor = expresion();
-            lista.add(new Variable(id.getLexema(), valor, id.getFila(), id.getColumna()));
+            try {
+                consumir(TipoToken.VARIABLE);
+                Token id = consumir(TipoToken.ID);
+                consumir(TipoToken.IGUAL);
+                Expresion valor = expresion();
+                lista.add(new Variable(id.getLexema(), valor, id.getFila(), id.getColumna()));
+            } catch (ErrorSintacticoException e) {
+                recuperar(e, SYNC_CUERPO);
+            }
         }
         return lista;
     }
 
-    // 8. <comandos> -> <comando> <mas_comandos>      (al menos un comando)
+    // 8. <comandos> -> <comando> <mas_comandos>
     private List<Comando> comandos() {
         List<Comando> lista = new ArrayList<>();
-        lista.add(comando());
+        intentarComando(lista);
         masComandos(lista);
         return lista;
     }
@@ -159,7 +234,16 @@ public class Parser {
     // 9. <mas_comandos> -> <comando> <mas_comandos> | ε
     private void masComandos(List<Comando> lista) {
         while (es(TipoToken.COMANDO_IA)) {
+            intentarComando(lista);
+        }
+    }
+
+    //Punto de recuperación: un comando dañado se pierde, los demás siguen.
+    private void intentarComando(List<Comando> lista) {
+        try {
             lista.add(comando());
+        } catch (ErrorSintacticoException e) {
+            recuperar(e, SYNC_CUERPO);
         }
     }
 
@@ -202,7 +286,6 @@ public class Parser {
     }
 
     // 14. <termino> -> <cadena> | ID | NUMERO <unidad> | <cargar>
-    // Se decide con FIRST: COMILLA, ID, NUMERO, CARGAR (conjuntos disjuntos).
     private Termino termino() {
         switch (actual.getTipo()) {
             case COMILLA -> {
@@ -243,11 +326,10 @@ public class Parser {
         return new TerminoCarga(archivo, c.getFila(), c.getColumna());
     }
 
-    // 17. <ejecuciones> -> EJECUTAR ID <mas_ejecuciones>
+    // 17. <ejecuciones> -> EJECUTAR ID <mas_ejecuciones>   (la primera es obligatoria)
     private List<Referencia> ejecuciones() {
         List<Referencia> lista = new ArrayList<>();
-        consumir(TipoToken.EJECUTAR);
-        lista.add(consumirReferencia());
+        intentarEjecucion(lista);
         masEjecuciones(lista);
         return lista;
     }
@@ -255,17 +337,29 @@ public class Parser {
     // 18. <mas_ejecuciones> -> EJECUTAR ID <mas_ejecuciones> | ε
     private void masEjecuciones(List<Referencia> lista) {
         while (es(TipoToken.EJECUTAR)) {
+            intentarEjecucion(lista);
+        }
+    }
+
+    private void intentarEjecucion(List<Referencia> lista) {
+        try {
             consumir(TipoToken.EJECUTAR);
             lista.add(consumirReferencia());
+        } catch (ErrorSintacticoException e) {
+            recuperar(e, SYNC_EJECUCIONES);
         }
     }
 
     // 19. <exportar> -> EXPORTAR ID <mas_ids>
     private List<Referencia> exportar() {
         List<Referencia> lista = new ArrayList<>();
-        consumir(TipoToken.EXPORTAR);
-        lista.add(consumirReferencia());
-        masIds(lista);
+        try {
+            consumir(TipoToken.EXPORTAR);
+            lista.add(consumirReferencia());
+            masIds(lista);
+        } catch (ErrorSintacticoException e) {
+            recuperar(e, SYNC_EXPORTAR);     // no hay nada válido después: hasta EOF
+        }
         return lista;
     }
 

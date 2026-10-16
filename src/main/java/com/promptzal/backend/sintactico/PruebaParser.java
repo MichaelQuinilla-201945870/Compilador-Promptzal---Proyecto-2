@@ -8,24 +8,15 @@ import com.promptzal.backend.lexico.TipoToken;
 import com.promptzal.backend.lexico.Token;
 import java.io.IOException;
 import java.io.StringReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
 public class PruebaParser {
     public static void main(String[] args) throws IOException {
-        String fuente = """
-                @modelo "claude-sonnet-4-6"
-                @rol "analista de datos"
-                @formato "markdown"
-                // Agente que prepara el analisis de un archivo de ventas
-                AGENTE analista {
-                 contexto = "Eres un analista de datos experto"
-                 variable ventas = CARGAR("ventas.csv") PREGUNTAR "Cuales son las 3 tendencias principales?" SOBRE ventas -> tendencias
-                 RESUMIR tendencias EN 100 palabras -> resumen
-                }
-                EJECUTAR analista
-                EXPORTAR resumen
-                """;
+        String archivo = "ejemplos/07_basura.pz";     // <-- cambia este nombre para probar otro caso
+        String fuente = Files.readString(Path.of(archivo));
 
         GestorErrores gestor = new GestorErrores();
         AnalizadorLexico lexer = new AnalizadorLexico(new StringReader(fuente), gestor);
@@ -37,12 +28,14 @@ public class PruebaParser {
             tokens.add(t);
         } while (t.getTipo() != TipoToken.EOF);
 
-        Programa programa = new Parser(tokens, gestor).analizar();
+        Parser parser = new Parser(tokens, gestor);
+        Programa programa = parser.analizar();
 
+        System.out.println("Archivo: " + archivo);
         if (programa != null) {
             System.out.println(ImpresorAST.imprimir(programa));
         }
-        System.out.println("--- Errores ---");
+        System.out.println("--- Errores (" + gestor.getErrores().size() + ") ---");
         gestor.getErrores().forEach(System.out::println);
     }
 }

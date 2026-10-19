@@ -81,7 +81,16 @@ public class AnalizadorSemantico {
     // EJECUTAR y EXPORTAR
     private Set<String> validarEjecuciones(List<Referencia> ejecuciones) {
         Set<String> ejecutados = new LinkedHashSet<>();
-        for (Referencia r : ejecuciones) {
+        for (int i = 0; i < ejecuciones.size(); i++) {
+            Referencia r = ejecuciones.get(i);
+
+            if (PlanEjecucion.esRepeticionInmediata(ejecuciones, i)) {
+                error("EJECUTAR repite el agente '" + r.nombre()
+                                + "' justo después de haberlo ejecutado; se ignora esta repetición",
+                        r.fila(), r.columna());
+                continue;
+            }
+
             if (tabla.existeAgente(r.nombre())) {
                 ejecutados.add(r.nombre());
             } else {

@@ -1,0 +1,138 @@
+/* Tema oscuro de PromptZal  */
+
+.root {
+    /* Superficies */
+    -pz-lienzo: #1E1F22;          /* editor y tablas */
+    -pz-panel: #2B2D30;           /* barras y paneles */
+    -pz-linea: #393B40;           /* divisores */
+    -pz-hover: #393B40;
+    -pz-presionado: #43454A;
+
+    /* Texto */
+    -pz-texto: #DFE1E5;
+    -pz-silenciado: #868A91;
+    -pz-codigo: #BCBEC4;
+    -pz-numero-linea: #4B5059;
+
+    /* Acento y estados */
+    -pz-acento: #3574F0;
+    -pz-seleccion: #2E436E;
+    -pz-error: #F75464;
+    -pz-aviso: #F2C55C;
+    -pz-exito: #5FB865;
+
+    /* Colores del codigo PromptZal */
+    -pz-sintaxis-directiva: #B3AE60;
+    -pz-sintaxis-reservada: #CF8E6D;
+    -pz-sintaxis-comando: #56A8F5;
+    -pz-sintaxis-conector: #C77DBB;
+    -pz-sintaxis-cadena: #6AAB73;
+    -pz-sintaxis-numero: #2AACB8;
+    -pz-sintaxis-comentario: #7A7E85;
+
+    /* Ajustes para que los controles de JavaFX sean oscuros */
+    -fx-base: #2B2D30;
+    -fx-background: #2B2D30;
+    -fx-control-inner-background: #1E1F22;
+    -fx-accent: #3574F0;
+    -fx-focus-color: #3574F0;
+    -fx-faint-focus-color: transparent;
+
+    -fx-font-family: "Inter", "Noto Sans", "Cantarell", sans-serif;
+    -fx-font-size: 13px;
+}
+
+.label {
+    -fx-text-fill: -pz-texto;
+}
+
+.texto-silenciado {
+    -fx-text-fill: -pz-silenciado;
+}
+
+/* Barra de herramientas */
+
+.barra-herramientas {
+    -fx-background-color: -pz-panel;
+    -fx-padding: 6 12 6 12;
+    -fx-border-color: transparent transparent -pz-linea transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.nombre-proyecto {
+    -fx-font-weight: bold;
+}
+
+.boton-compilar {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 4;
+    -fx-padding: 5 12 5 10;
+    -fx-text-fill: -pz-texto;
+    -fx-cursor: hand;
+}
+
+.boton-compilar:hover {
+    -fx-background-color: -pz-hover;
+}
+
+.boton-compilar:pressed {
+    -fx-background-color: -pz-presionado;
+}
+
+.boton-compilar:focused {
+    -fx-border-color: -pz-acento;
+    -fx-border-radius: 4;
+}
+
+.boton-compilar .ikonli-font-icon {
+    -fx-icon-color: -pz-exito;
+    -fx-icon-size: 16;
+}
+
+/* Barra de estado */
+
+.barra-estado {
+    -fx-background-color: -pz-panel;
+    -fx-padding: 4 12 4 12;
+    -fx-border-color: -pz-linea transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+}
+
+/* Editor de código */
+.code-area {
+    -fx-background-color: -pz-lienzo;
+    -fx-font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace;
+    -fx-font-size: 13px;
+}
+
+
+/* para que un estilo nunca quede anulado por el color base. */}
+.code-area .text {
+    -fx-fill: -pz-codigo;
+}
+
+
+.code-area .text.pz-directiva  { -fx-fill: -pz-sintaxis-directiva; }
+.code-area .text.pz-reservada  { -fx-fill: -pz-sintaxis-reservada; }
+.code-area .text.pz-comando    { -fx-fill: -pz-sintaxis-comando; }
+.code-area .text.pz-conector   { -fx-fill: -pz-sintaxis-conector; }
+.code-area .text.pz-cadena     { -fx-fill: -pz-sintaxis-cadena; }
+.code-area .text.pz-numero     { -fx-fill: -pz-sintaxis-numero; }
+.code-area .text.pz-comentario { -fx-fill: -pz-sintaxis-comentario; -fx-font-style: italic; }
+
+.code-area .caret {
+    -fx-stroke: #CED0D6;
+}
+
+/* numeros de línea */
+.code-area .lineno {
+    -fx-background-color: -pz-lienzo;
+    -fx-text-fill: -pz-numero-linea;
+    -fx-padding: 0 12 0 16;
+}
+
+/* Resalta la línea donde está el cursor */
+.code-area .paragraph-box:has-caret {
+    -fx-background-color: #26282E;
+}

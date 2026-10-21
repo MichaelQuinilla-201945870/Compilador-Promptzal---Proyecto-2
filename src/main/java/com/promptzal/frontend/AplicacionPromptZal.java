@@ -13,14 +13,13 @@ public class AplicacionPromptZal extends Application {
 
     @Override
     public void start(Stage stage) {
-        Fuentes.cargar();                       // antes de crear cualquier control
+        Fuentes.cargar(); // antes de crear cualquier control
         System.out.println("JavaFX " + System.getProperty("javafx.runtime.version")
                 + ", Java " + System.getProperty("java.version"));
 
         URL tema = getClass().getResource(TEMA);
         if (tema == null) {
-            throw new IllegalStateException("No se encontró el tema " + TEMA
-                    + ". Revisa que oscuro.css esté en src/main/resources/com/promptzal/frontend/tema/");
+            throw new IllegalStateException("No se encontró el tema " + TEMA);
         }
 
         VentanaPrincipal ventana = new VentanaPrincipal();

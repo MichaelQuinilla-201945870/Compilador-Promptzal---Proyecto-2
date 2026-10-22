@@ -1,109 +1,154 @@
 package com.promptzal.frontend.ui;
 
-import com.promptzal.frontend.tema.Fuentes;
-import javafx.geometry.Pos;
+import com.promptzal.frontend.tema.Iconos;
+import javafx.application.Platform;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.Parent;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
+import javafx.scene.control.SplitPane;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
-import org.fxmisc.flowless.VirtualizedScrollPane;
-import org.fxmisc.richtext.CodeArea;
-import org.fxmisc.richtext.LineNumberFactory;
-import org.kordamp.ikonli.javafx.FontIcon;
+import javafx.scene.layout.VBox;
 import java.util.List;
 
-//: ventana de prueba para comprobar tema, fuentes, editor e íconos.
+// Ventana principal: menu arriba, tiras laterales, paneles con divisores y barra de estado.
 public class VentanaPrincipal {
 
-    private static final String MUESTRA = """
-            @modelo "claude-sonnet-4-6"
-            // Agente de ejemplo
-            AGENTE analista {
-              contexto = "Eres un analista de datos experto"
-              PREGUNTAR "Cuales son las tendencias?" SOBRE ventas -> tendencias
-              RESUMIR tendencias EN 100 palabras -> resumen
-            }
-            """;
+    private static final double ANCHO_PROYECTO = 240;
+    private static final double ANCHO_PROMPTZAL = 380;
+    private static final double ALTO_INFERIOR = 240;
+
+    private final BooleanProperty proyectoVisible = new SimpleBooleanProperty(true);
+    private final BooleanProperty promptzalVisible = new SimpleBooleanProperty(true);
+    private final BooleanProperty inferiorVisible = new SimpleBooleanProperty(true);
 
     private final BorderPane raiz = new BorderPane();
+    private final SplitPane horizontal = new SplitPane();   // proyecto | centro | promptzal
+    private final SplitPane vertical = new SplitPane();     // editor / panel inferior
+
+    private final PanelProyecto panelProyecto = new PanelProyecto(() -> proyectoVisible.set(false));
+    private final AreaEditor areaEditor = new AreaEditor();
+    private final PanelInferior panelInferior = new PanelInferior(() -> inferiorVisible.set(false));
+    private final PanelPromptzal panelPromptzal = new PanelPromptzal(() -> promptzalVisible.set(false));
+    private final BarraEstado barraEstado = new BarraEstado();
+
+    private boolean anchoInicialAplicado = false;
+    private boolean altoInicialAplicado = false;
 
     public VentanaPrincipal() {
-        raiz.setTop(crearBarraHerramientas());
-        raiz.setCenter(crearEditor());
-        raiz.setBottom(crearBarraEstado());
+        vertical.setOrientation(Orientation.VERTICAL);
+
+        // Al cambiar el tamaño de la ventana, los paneles laterales conservan su tamaño
+        SplitPane.setResizableWithParent(panelProyecto, false);
+        SplitPane.setResizableWithParent(panelPromptzal, false);
+        SplitPane.setResizableWithParent(panelInferior, false);
+
+        areaEditor.setAlMoverCursor(barraEstado::setPosicion);
+
+        raiz.setTop(new VBox(
+                new BarraMenu(proyectoVisible, promptzalVisible, inferiorVisible),
+                new BarraHerramientas()));
+        raiz.setLeft(crearBarraIzquierda());
+        raiz.setRight(crearBarraDerecha());
+        raiz.setCenter(horizontal);
+        raiz.setBottom(barraEstado);
+
+        proyectoVisible.addListener((obs, antes, ahora) -> reorganizar());
+        promptzalVisible.addListener((obs, antes, ahora) -> reorganizar());
+        inferiorVisible.addListener((obs, antes, ahora) -> reorganizar());
+        reorganizar();
+
+        horizontal.widthProperty().addListener((obs, antes, ancho) -> {
+            if (!anchoInicialAplicado && ancho.doubleValue() > 0) {
+                anchoInicialAplicado = true;
+                aplicarProporcionHorizontal();
+            }
+        });
+        vertical.heightProperty().addListener((obs, antes, alto) -> {
+            if (!altoInicialAplicado && alto.doubleValue() > 0) {
+                altoInicialAplicado = true;
+                aplicarProporcionVertical();
+            }
+        });
     }
 
     public Parent getRaiz() {
         return raiz;
     }
 
-    private Node crearBarraHerramientas() {
-        Label proyecto = new Label("promptzal");
-        proyecto.getStyleClass().add("nombre-proyecto");
-
-        Region espacio = new Region();
-        HBox.setHgrow(espacio, Priority.ALWAYS);
-
-        Button compilar = new Button("Compilar", new FontIcon("mdi2p-play"));
-        compilar.getStyleClass().add("boton-compilar");
-
-        HBox barra = new HBox(8, proyecto, espacio, compilar);
-        barra.setAlignment(Pos.CENTER_LEFT);
-        barra.getStyleClass().add("barra-herramientas");
+    // Tiras laterales
+    private Node crearBarraIzquierda() {
+        BarraLateral barra = new BarraLateral(true);
+        barra.arriba(Iconos.PROYECTO, "Proyecto (Alt+1)", proyectoVisible);
+        barra.abajo(Iconos.ERRORES, "Errores y resultados (Alt+3)", inferiorVisible);
         return barra;
     }
 
-    private Node crearEditor() {
-        CodeArea area = new CodeArea(MUESTRA);
-        area.setParagraphGraphicFactory(LineNumberFactory.get(area));
-
-        // Solo para la vista previa
-        pintar(area, "@modelo", "pz-directiva");
-        pintar(area, "\"claude-sonnet-4-6\"", "pz-cadena");
-        pintar(area, "// Agente de ejemplo", "pz-comentario");
-        pintar(area, "AGENTE", "pz-reservada");
-        pintar(area, "contexto", "pz-reservada");
-        pintar(area, "PREGUNTAR", "pz-comando");
-        pintar(area, "RESUMIR", "pz-comando");
-        pintar(area, "SOBRE", "pz-conector");
-        pintar(area, "->", "pz-conector");
-        pintar(area, "100", "pz-numero");
-
-        return new VirtualizedScrollPane<>(area);
-    }
-
-    private static void pintar(CodeArea area, String fragmento, String clase) {
-        int inicio = area.getText().indexOf(fragmento);
-        if (inicio >= 0) {
-            area.setStyle(inicio, inicio + fragmento.length(), List.of(clase));
-        }
-    }
-
-    private Node crearBarraEstado() {
-        Label mensaje = new Label("Vista previa de la interfaz");
-
-        Region espacio = new Region();
-        HBox.setHgrow(espacio, Priority.ALWAYS);
-
-        Label javafx = new Label("JavaFX " + System.getProperty("javafx.runtime.version"));
-        Label java = new Label("Java " + System.getProperty("java.version"));
-        Label mono = new Label("JetBrains Mono: " + estado(Fuentes.disponible("JetBrains Mono")));
-        Label inter = new Label("Inter: " + estado(Fuentes.disponible("Inter")));
-        for (Label l : List.of(javafx, java, mono, inter)) {
-            l.getStyleClass().add("texto-silenciado");
-        }
-
-        HBox barra = new HBox(16, mensaje, espacio, mono, inter, java, javafx);
-        barra.setAlignment(Pos.CENTER_LEFT);
-        barra.getStyleClass().add("barra-estado");
+    private Node crearBarraDerecha() {
+        BarraLateral barra = new BarraLateral(false);
+        barra.arriba(Iconos.PROMPTZAL, "Promptzal (Alt+2)", promptzalVisible);
         return barra;
     }
 
-    private static String estado(boolean cargada) {
-        return cargada ? "cargada" : "no encontrada";
+    // Mostrar y ocultar paneles
+    private void reorganizar() {
+        vertical.getItems().clear();
+        vertical.getItems().add(areaEditor);
+        if (inferiorVisible.get()) {
+            vertical.getItems().add(panelInferior);
+        }
+
+        horizontal.getItems().clear();
+        if (proyectoVisible.get()) {
+            horizontal.getItems().add(panelProyecto);
+        }
+        horizontal.getItems().add(vertical);
+        if (promptzalVisible.get()) {
+            horizontal.getItems().add(panelPromptzal);
+        }
+
+        Platform.runLater(() -> {
+            aplicarProporcionHorizontal();
+            aplicarProporcionVertical();
+        });
+    }
+
+    private double anchoFijo(Node nodo) {
+        if (nodo == panelProyecto) {
+            return ANCHO_PROYECTO;
+        }
+        if (nodo == panelPromptzal) {
+            return ANCHO_PROMPTZAL;
+        }
+        return 0;       // el centro ocupa lo que sobra
+    }
+
+    private void aplicarProporcionHorizontal() {
+        double ancho = horizontal.getWidth();
+        List<Node> items = horizontal.getItems();
+        if (ancho <= 0 || items.size() < 2) {
+            return;
+        }
+        double fijos = 0;
+        for (Node nodo : items) {
+            fijos += anchoFijo(nodo);
+        }
+        double[] posiciones = new double[items.size() - 1];
+        double acumulado = 0;
+        for (int i = 0; i < posiciones.length; i++) {
+            Node nodo = items.get(i);
+            acumulado += (nodo == vertical) ? ancho - fijos : anchoFijo(nodo);
+            posiciones[i] = acumulado / ancho;
+        }
+        horizontal.setDividerPositions(posiciones);
+    }
+
+    private void aplicarProporcionVertical() {
+        double alto = vertical.getHeight();
+        if (alto <= 0 || vertical.getItems().size() < 2) {
+            return;
+        }
+        vertical.setDividerPositions((alto - ALTO_INFERIOR) / alto);
     }
 }

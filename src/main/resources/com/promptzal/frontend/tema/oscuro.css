@@ -136,3 +136,233 @@
 .code-area .paragraph-box:has-caret {
     -fx-background-color: #26282E;
 }
+
+/* menu, divisores, pestañas, barras laterales y paneles */
+
+/* Menu */
+
+.menu-bar {
+    -fx-background-color: -pz-panel;
+    -fx-padding: 0 6 0 6;
+    -fx-border-color: transparent transparent -pz-linea transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.menu-bar > .container > .menu-button {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 4;
+    -fx-padding: 4 8 4 8;
+}
+
+.menu-bar > .container > .menu-button:hover,
+.menu-bar > .container > .menu-button:showing {
+    -fx-background-color: -pz-hover;
+}
+
+.context-menu {
+    -fx-background-color: -pz-panel;
+    -fx-background-insets: 0;
+    -fx-background-radius: 6;
+    -fx-border-color: -pz-linea;
+    -fx-border-radius: 6;
+    -fx-padding: 4;
+}
+
+.menu-item {
+    -fx-background-radius: 4;
+    -fx-padding: 5 10 5 10;
+}
+
+.menu-item:focused {
+    -fx-background-color: -pz-seleccion;
+}
+
+.tooltip {
+    -fx-background-color: -pz-lienzo;
+    -fx-text-fill: -pz-texto;
+    -fx-border-color: -pz-linea;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-font-size: 12px;
+}
+
+/* Divisores */
+
+.split-pane {
+    -fx-background-color: -pz-lienzo;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.split-pane > .split-pane-divider {
+    -fx-background-color: -pz-linea;
+    -fx-padding: 0 1 0 1;
+}
+
+.split-pane:vertical > .split-pane-divider {
+    -fx-padding: 1 0 1 0;
+}
+
+/*  Pestañas (editor y panel inferior)  */
+
+.tab-pane {
+    -fx-tab-min-height: 32px;
+    -fx-tab-max-height: 32px;
+}
+
+.tab-pane > .tab-header-area > .tab-header-background {
+    -fx-background-color: -pz-panel;
+}
+
+.tab-pane > .tab-content-area {
+    -fx-background-color: -pz-lienzo;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.tab {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+    -fx-border-color: transparent transparent transparent transparent;
+    -fx-border-width: 0 0 2 0;
+}
+
+.tab:selected {
+    -fx-border-color: transparent transparent -pz-acento transparent;
+}
+
+.tab:hover {
+    -fx-background-color: -pz-hover;
+}
+
+.tab .tab-label {
+    -fx-text-fill: -pz-silenciado;
+}
+
+.tab:selected .tab-label,
+.tab:hover .tab-label {
+    -fx-text-fill: -pz-texto;
+}
+
+.tab .ikonli-font-icon {
+    -fx-icon-color: -pz-silenciado;
+    -fx-icon-size: 14;
+}
+
+.tab:selected .ikonli-font-icon {
+    -fx-icon-color: -pz-texto;
+}
+
+/* icono del archivo .pz en verde */
+.tab .ikonli-font-icon.icono-pz,
+.tab:selected .ikonli-font-icon.icono-pz {
+    -fx-icon-color: -pz-exito;
+}
+
+.tab .focus-indicator {
+    -fx-border-color: transparent;
+}
+
+/* Tiras laterales */
+
+.barra-lateral {
+    -fx-background-color: -pz-panel;
+    -fx-padding: 6 4 6 4;
+    -fx-spacing: 4;
+}
+
+.barra-lateral-izq {
+    -fx-border-color: transparent -pz-linea transparent transparent;
+    -fx-border-width: 0 1 0 0;
+}
+
+.barra-lateral-der {
+    -fx-border-color: transparent transparent transparent -pz-linea;
+    -fx-border-width: 0 0 0 1;
+}
+
+.boton-herramienta {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 6;
+    -fx-padding: 7;
+    -fx-cursor: hand;
+}
+
+.boton-herramienta:hover {
+    -fx-background-color: -pz-hover;
+}
+
+.boton-herramienta:selected {
+    -fx-background-color: -pz-seleccion;
+}
+
+.boton-herramienta:focused {
+    -fx-border-color: -pz-acento;
+    -fx-border-radius: 6;
+}
+
+.boton-herramienta .ikonli-font-icon {
+    -fx-icon-color: -pz-silenciado;
+    -fx-icon-size: 18;
+}
+
+.boton-herramienta:hover .ikonli-font-icon,
+.boton-herramienta:selected .ikonli-font-icon {
+    -fx-icon-color: -pz-texto;
+}
+
+/*  Paneles */
+
+.panel {
+    -fx-background-color: -pz-panel;
+}
+
+.panel-promptzal {
+    -fx-background-color: -pz-lienzo;
+}
+
+.encabezado-panel {
+    -fx-background-color: -pz-panel;
+    -fx-padding: 4 8 4 12;
+    -fx-min-height: 32;
+    -fx-border-color: transparent transparent -pz-linea transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.boton-icono {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 4;
+    -fx-padding: 4;
+    -fx-cursor: hand;
+}
+
+.boton-icono:hover {
+    -fx-background-color: -pz-hover;
+}
+
+.boton-icono:pressed {
+    -fx-background-color: -pz-presionado;
+}
+
+.boton-icono:focused {
+    -fx-border-color: -pz-acento;
+    -fx-border-radius: 4;
+}
+
+.boton-icono .ikonli-font-icon {
+    -fx-icon-color: -pz-silenciado;
+    -fx-icon-size: 16;
+}
+
+.boton-icono:hover .ikonli-font-icon {
+    -fx-icon-color: -pz-texto;
+}
+
+.estado-vacio {
+    -fx-text-fill: -pz-silenciado;
+    -fx-text-alignment: center;
+}

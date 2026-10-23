@@ -19,9 +19,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import org.fxmisc.richtext.CodeArea;
 
 // Zona central: ahora es pestañas de archivos .pz y operaciones de abrir, guardar y cerrar lista
-
 class AreaEditor extends StackPane {
 
     private final TabPane pestanas = new TabPane();
@@ -165,6 +165,25 @@ class AreaEditor extends StackPane {
         if (d != null) {
             d.getArea().paste();
         }
+    }
+
+    // Lleva el cursor a (fila, columna), contando desde 1
+    void irA(DocumentoPz documento, int fila, int columna) {
+        if (!pestanas.getTabs().contains(documento.getPestana())) {
+            return;                                    // el archivo ya se cerró
+        }
+        pestanas.getSelectionModel().select(documento.getPestana());
+
+        CodeArea area = documento.getArea();
+        // Si el archivo cambio desde la compilacion, la posicion se ajusta al texto actual
+        int parrafo = Math.max(0, Math.min(fila - 1, area.getParagraphs().size() - 1));
+        int posicion = Math.max(0, Math.min(columna - 1, area.getParagraphLength(parrafo)));
+        area.moveTo(parrafo, posicion);
+
+        Platform.runLater(() -> {
+            area.requestFollowCaret();                 // para hacer visible el cursor si estaba fuera de pantalla
+            area.requestFocus();
+        });
     }
 
     // Internos

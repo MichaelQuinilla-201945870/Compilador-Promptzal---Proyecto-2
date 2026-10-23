@@ -15,7 +15,7 @@ import javafx.scene.input.KeyCombination;
 class BarraMenu extends MenuBar {
 
     BarraMenu(BooleanProperty proyecto, BooleanProperty promptzal, BooleanProperty inferior,
-              AreaEditor editor, Runnable salir) {
+              AreaEditor editor, Runnable compilar, Runnable salir) {
 
         ReadOnlyBooleanProperty hayDocumento = editor.hayDocumentoProperty();
 
@@ -31,6 +31,7 @@ class BarraMenu extends MenuBar {
                         accion("Cerrar pestaña", ctrl(KeyCode.W), editor::cerrarActiva, hayDocumento),
                         new SeparatorMenuItem(),
                         accion("Salir", ctrl(KeyCode.Q), salir)),
+
                 new Menu("Editar", null,
                         accion("Deshacer", null, editor::deshacer, hayDocumento),
                         accion("Rehacer", null, editor::rehacer, hayDocumento),
@@ -40,16 +41,21 @@ class BarraMenu extends MenuBar {
                         accion("Pegar", null, editor::pegar, hayDocumento),
                         new SeparatorMenuItem(),
                         pendiente("Comentar línea", ctrl(KeyCode.SLASH))),
+
                 new Menu("Ver", null,
                         visibilidad("Proyecto", proyecto, alt(KeyCode.DIGIT1)),
                         visibilidad("Promptzal", promptzal, alt(KeyCode.DIGIT2)),
                         visibilidad("Errores y resultados", inferior, alt(KeyCode.DIGIT3))),
+
                 new Menu("Compilar", null,
-                        pendiente("Compilar", new KeyCodeCombination(KeyCode.F10, KeyCombination.SHIFT_DOWN))),
+                        accion("Compilar", new KeyCodeCombination(KeyCode.F10, KeyCombination.SHIFT_DOWN),
+                                compilar, hayDocumento)),
+
                 new Menu("Reportes", null,
                         pendiente("Reporte de errores", null),
                         pendiente("Tabla de símbolos", null),
                         pendiente("Árbol de sintaxis (AST)", null)),
+
                 new Menu("Ayuda", null,
                         pendiente("Acerca de PromptZal", null)));
     }

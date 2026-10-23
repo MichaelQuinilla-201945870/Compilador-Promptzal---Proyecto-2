@@ -13,6 +13,9 @@ import javafx.scene.layout.VBox;
 import java.util.List;
 import javafx.stage.Window;
 import javafx.stage.WindowEvent;
+import com.promptzal.backend.Compilador;
+import com.promptzal.backend.ResultadoCompilacion;
+import com.promptzal.backend.errores.ErrorCompilador;
 
 // Ventana principal: menu arriba, tiras laterales, paneles con divisores y barra de estado.
 public class VentanaPrincipal {
@@ -38,6 +41,9 @@ public class VentanaPrincipal {
     private boolean anchoInicialAplicado = false;
     private boolean altoInicialAplicado = false;
 
+    private final Compilador compilador = new Compilador();
+    private DocumentoPz documentoCompilado;      // archivo al que pertenecen los errores mostrados
+
     public VentanaPrincipal() {
         vertical.setOrientation(Orientation.VERTICAL);
 
@@ -47,10 +53,13 @@ public class VentanaPrincipal {
         SplitPane.setResizableWithParent(panelInferior, false);
 
         areaEditor.setAlInformar(barraEstado::setMensaje);
+        panelInferior.setAlSeleccionarError(this::irAError);
+
 
         raiz.setTop(new VBox(
-                new BarraMenu(proyectoVisible, promptzalVisible, inferiorVisible, areaEditor, this::salir),
-                new BarraHerramientas(areaEditor)));
+                new BarraMenu(proyectoVisible, promptzalVisible, inferiorVisible, areaEditor, this::compilar, this::salir),
+                new BarraHerramientas(areaEditor, this::compilar)));
+
         raiz.setLeft(crearBarraIzquierda());
         raiz.setRight(crearBarraDerecha());
         raiz.setCenter(horizontal);
@@ -88,6 +97,46 @@ public class VentanaPrincipal {
     private void salir() {
         Window ventana = raiz.getScene().getWindow();
         ventana.fireEvent(new WindowEvent(ventana, WindowEvent.WINDOW_CLOSE_REQUEST));
+    }
+
+    // Compila el archivo de la pestaña activa
+    private void compilar() {
+        DocumentoPz documento = areaEditor.activo();
+        if (documento == null) {
+            return;
+        }
+
+        ResultadoCompilacion resultado;
+        try {
+            resultado = compilador.compilar(documento.getArea().getText());
+        } catch (RuntimeException e) {                       // un fallo inesperado no tiene que tumbar la interfaz
+            e.printStackTrace();
+            Dialogos.error(raiz.getScene().getWindow(),
+                    "La compilación falló de forma inesperada", String.valueOf(e));
+            return;
+        }
+        documentoCompilado = documento;
+
+        List<ErrorCompilador> errores = resultado.errores();
+        panelInferior.mostrarErrores(errores);
+        if (!errores.isEmpty()) {
+            inferiorVisible.set(true);                       // si estaba oculto, se muestra
+            panelInferior.seleccionarErrores();
+        }
+        barraEstado.setMensaje(resumen(errores.size()));
+    }
+
+    private static String resumen(int errores) {
+        if (errores == 0) {
+            return "Compilación correcta";
+        }
+        return "Compilación terminada con " + errores + (errores == 1 ? " error" : " errores");
+    }
+
+    private void irAError(ErrorCompilador error) {
+        if (documentoCompilado != null) {
+            areaEditor.irA(documentoCompilado, error.getFila(), error.getColumna());
+        }
     }
 
     // Tiras laterales

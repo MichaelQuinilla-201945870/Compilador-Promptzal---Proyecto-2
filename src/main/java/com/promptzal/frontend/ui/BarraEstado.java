@@ -38,6 +38,6 @@ class BarraEstado extends HBox {
     }
 
     void setPosicion(int linea, int columna) {
-        posicion.setText(linea + ":" + columna);
+        posicion.setText(linea <= 0 ? "" : linea + ":" + columna);
     }
 }

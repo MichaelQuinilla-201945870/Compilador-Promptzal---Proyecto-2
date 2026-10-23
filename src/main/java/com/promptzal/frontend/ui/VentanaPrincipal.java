@@ -11,6 +11,8 @@ import javafx.scene.control.SplitPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import java.util.List;
+import javafx.stage.Window;
+import javafx.stage.WindowEvent;
 
 // Ventana principal: menu arriba, tiras laterales, paneles con divisores y barra de estado.
 public class VentanaPrincipal {
@@ -44,11 +46,11 @@ public class VentanaPrincipal {
         SplitPane.setResizableWithParent(panelPromptzal, false);
         SplitPane.setResizableWithParent(panelInferior, false);
 
-        areaEditor.setAlMoverCursor(barraEstado::setPosicion);
+        areaEditor.setAlInformar(barraEstado::setMensaje);
 
         raiz.setTop(new VBox(
-                new BarraMenu(proyectoVisible, promptzalVisible, inferiorVisible),
-                new BarraHerramientas()));
+                new BarraMenu(proyectoVisible, promptzalVisible, inferiorVisible, areaEditor, this::salir),
+                new BarraHerramientas(areaEditor)));
         raiz.setLeft(crearBarraIzquierda());
         raiz.setRight(crearBarraDerecha());
         raiz.setCenter(horizontal);
@@ -75,6 +77,17 @@ public class VentanaPrincipal {
 
     public Parent getRaiz() {
         return raiz;
+    }
+
+    public void alCerrarVentana(WindowEvent evento) {
+        if (!areaEditor.puedeCerrarTodo()) {
+            evento.consume();                    // el usuario cancelo: la ventana sigue abierta
+        }
+    }
+
+    private void salir() {
+        Window ventana = raiz.getScene().getWindow();
+        ventana.fireEvent(new WindowEvent(ventana, WindowEvent.WINDOW_CLOSE_REQUEST));
     }
 
     // Tiras laterales

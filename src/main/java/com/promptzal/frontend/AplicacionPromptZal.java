@@ -13,11 +13,13 @@ public class AplicacionPromptZal extends Application {
 
     @Override
     public void start(Stage stage) {
+
         Fuentes.cargar(); // antes de crear cualquier control
-        System.out.println("JavaFX " + System.getProperty("javafx.runtime.version")
-                + ", Java " + System.getProperty("java.version"));
+
+        System.out.println("JavaFX " + System.getProperty("javafx.runtime.version") + ", Java " + System.getProperty("java.version"));
 
         URL tema = getClass().getResource(TEMA);
+
         if (tema == null) {
             throw new IllegalStateException("No se encontró el tema " + TEMA);
         }
@@ -30,6 +32,7 @@ public class AplicacionPromptZal extends Application {
         stage.setMinWidth(900);
         stage.setMinHeight(560);
         stage.setScene(escena);
+        stage.setOnCloseRequest(ventana::alCerrarVentana);
         stage.show();
     }
 

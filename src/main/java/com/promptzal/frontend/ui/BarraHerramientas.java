@@ -12,7 +12,7 @@ import javafx.scene.layout.Region;
 // Barra de debajo del menú: nombre del proyecto y acciones rapidas
 class BarraHerramientas extends HBox {
 
-    BarraHerramientas() {
+    BarraHerramientas(AreaEditor editor) {
         Label proyecto = new Label("promptzal");
         proyecto.getStyleClass().add("nombre-proyecto");
 
@@ -20,16 +20,16 @@ class BarraHerramientas extends HBox {
         HBox.setHgrow(espacio, Priority.ALWAYS);
 
         Button abrir = Componentes.botonIcono(Iconos.ABRIR, "Abrir archivo (Ctrl+O)");
+        abrir.setOnAction(e -> editor.abrir());
+
         Button guardar = Componentes.botonIcono(Iconos.GUARDAR, "Guardar (Ctrl+S)");
+        guardar.setOnAction(e -> editor.guardar());
+        guardar.disableProperty().bind(editor.hayDocumentoProperty().not());
 
         Button compilar = new Button("Compilar", Iconos.crear(Iconos.COMPILAR));
         compilar.getStyleClass().add("boton-compilar");
         compilar.setTooltip(new Tooltip("Compilar (Shift+F10)"));
-
-        // falta por asignar su uso.
-        abrir.setDisable(true);
-        guardar.setDisable(true);
-        compilar.setDisable(true);
+        compilar.setDisable(true);                   // se activa en F4
 
         getChildren().addAll(proyecto, espacio, abrir, guardar, compilar);
         setAlignment(Pos.CENTER_LEFT);

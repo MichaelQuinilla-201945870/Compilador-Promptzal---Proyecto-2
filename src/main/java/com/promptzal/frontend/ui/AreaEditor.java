@@ -1,68 +1,293 @@
 package com.promptzal.frontend.ui;
 
-import com.promptzal.frontend.tema.Iconos;
+import javafx.application.Platform;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.collections.ListChangeListener;
+import javafx.scene.Node;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
-import org.fxmisc.flowless.VirtualizedScrollPane;
-import org.fxmisc.richtext.CodeArea;
-import org.fxmisc.richtext.LineNumberFactory;
-import org.kordamp.ikonli.javafx.FontIcon;
+import javafx.scene.layout.StackPane;
+import javafx.stage.FileChooser;
+import javafx.stage.Window;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.CharacterCodingException;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
-// Zona central: pestañas de archivos con su editor */
-class AreaEditor extends TabPane {
+// Zona central: ahora es pestañas de archivos .pz y operaciones de abrir, guardar y cerrar lista
 
-    //Muestra de para ver que sirva
-    private static final String MUESTRA = """ 
-            @modelo "claude-sonnet-4-6"
-            // Agente de ejemplo
-            AGENTE analista {
-              contexto = "Eres un analista de datos experto"
-              PREGUNTAR "Cuales son las tendencias?" SOBRE ventas -> tendencias
-              RESUMIR tendencias EN 100 palabras -> resumen
-            }
-            """;
+class AreaEditor extends StackPane {
 
-    private final CodeArea area = new CodeArea(MUESTRA);
+    private final TabPane pestanas = new TabPane();
+    private final BooleanProperty hayDocumento = new SimpleBooleanProperty(false);
+
+    private BiConsumer<Integer, Integer> alMoverCursor = (linea, columna) -> { };
+    private Consumer<String> alInformar = mensaje -> { };
+    private File ultimoDirectorio;
+    private int contadorSinTitulo = 0;
 
     AreaEditor() {
-        area.setParagraphGraphicFactory(LineNumberFactory.get(area));
+        Node vacio = Componentes.estadoVacio("Abre un archivo .pz con Ctrl+O o crea uno nuevo con Ctrl+N.");
+        vacio.visibleProperty().bind(hayDocumento.not());
+        pestanas.visibleProperty().bind(hayDocumento);
+        pestanas.setTabClosingPolicy(TabPane.TabClosingPolicy.ALL_TABS);
 
-        // Solo de muestra
-        pintar("@modelo", "pz-directiva");
-        pintar("\"claude-sonnet-4-6\"", "pz-cadena");
-        pintar("// Agente de ejemplo", "pz-comentario");
-        pintar("AGENTE", "pz-reservada");
-        pintar("contexto", "pz-reservada");
-        pintar("PREGUNTAR", "pz-comando");
-        pintar("RESUMIR", "pz-comando");
-        pintar("SOBRE", "pz-conector");
-        pintar("->", "pz-conector");
-        pintar("100", "pz-numero");
+        getStyleClass().add("area-editor");
+        getChildren().addAll(vacio, pestanas);
 
-        FontIcon icono = Iconos.crear(Iconos.ARCHIVO_PZ);
-        icono.getStyleClass().add("icono-pz");
-
-        Tab pestana = new Tab("ejemplo.pz", new VirtualizedScrollPane<>(area));
-        pestana.setGraphic(icono);
-        pestana.setClosable(false);
-
-        getTabs().add(pestana);
-        setTabClosingPolicy(TabClosingPolicy.UNAVAILABLE);
+        pestanas.getTabs().addListener((ListChangeListener<Tab>) cambio ->
+                hayDocumento.set(!pestanas.getTabs().isEmpty()));
+        pestanas.getSelectionModel().selectedItemProperty().addListener(
+                (obs, antes, ahora) -> avisarPosicion());
     }
 
-    // Avisa (línea, columna) cada vez que se mueve el cursor. empieza por 1
+    // Conexión con el resto de la ventana
+    ReadOnlyBooleanProperty hayDocumentoProperty() {
+        return hayDocumento;
+    }
+
+    // Avisa (línea, columna) del cursor del archivo activo; (0, 0) si no hay ninguno.
     void setAlMoverCursor(BiConsumer<Integer, Integer> alMover) {
-        Runnable avisar = () -> alMover.accept(area.getCurrentParagraph() + 1, area.getCaretColumn() + 1);
-        area.caretPositionProperty().addListener((obs, antes, despues) -> avisar.run());
-        avisar.run();
+        this.alMoverCursor = alMover;
+        avisarPosicion();
     }
 
-    private void pintar(String fragmento, String clase) {
-        int inicio = area.getText().indexOf(fragmento);
-        if (inicio >= 0) {
-            area.setStyle(inicio, inicio + fragmento.length(), List.of(clase));
+    // Mensajes para la barra de estado ("Guardado archivo.pz").
+    void setAlInformar(Consumer<String> alInformar) {
+        this.alInformar = alInformar;
+    }
+
+    // Documento de la pestaña seleccionada, o null si no hay ninguno.
+    DocumentoPz activo() {
+        Tab tab = pestanas.getSelectionModel().getSelectedItem();
+        return tab == null ? null : (DocumentoPz) tab.getUserData();
+    }
+
+    // Archivo
+    void nuevo() {
+        contadorSinTitulo++;
+        agregar(DocumentoPz.nuevo("sin-titulo" + contadorSinTitulo + ".pz"));
+    }
+
+    void abrir() {
+        FileChooser selector = selector("Abrir archivo");
+        File archivo = selector.showOpenDialog(ventana());
+        if (archivo != null) {
+            abrirRuta(archivo.toPath());
         }
+    }
+
+    void abrirRuta(Path ruta) {
+        Path absoluta = ruta.toAbsolutePath().normalize();
+
+        for (DocumentoPz d : documentos()) {                // si ya está abierto, solo se selecciona
+            if (absoluta.equals(d.getRuta())) {
+                pestanas.getSelectionModel().select(d.getPestana());
+                return;
+            }
+        }
+        try {
+            agregar(DocumentoPz.abrir(absoluta));
+            recordarDirectorio(absoluta);
+            alInformar.accept("Abierto " + absoluta.getFileName());
+        } catch (CharacterCodingException e) {
+            Dialogos.error(ventana(), "No se pudo abrir " + absoluta.getFileName(),
+                    "El archivo no está codificado en UTF-8.");
+        } catch (IOException e) {
+            Dialogos.error(ventana(), "No se pudo abrir " + absoluta.getFileName(), e.getMessage());
+        }
+    }
+
+    boolean guardar() {
+        DocumentoPz d = activo();
+        return d != null && guardarDocumento(d);
+    }
+
+    boolean guardarComo() {
+        DocumentoPz d = activo();
+        return d != null && guardarDocumentoComo(d);
+    }
+
+    void cerrarActiva() {
+        DocumentoPz d = activo();
+        if (d != null && confirmarCierre(d)) {
+            pestanas.getTabs().remove(d.getPestana());
+        }
+    }
+
+    // Pregunta por cada archivo con cambios. false si el usuario lo cancelo
+    boolean puedeCerrarTodo() {
+        for (DocumentoPz d : documentos()) {
+            if (!confirmarCierre(d)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Edicion (en el menu Editar de la barra de arriba)
+    void deshacer() {
+        DocumentoPz d = activo();
+        if (d != null) {
+            d.getArea().undo();
+        }
+    }
+
+    void rehacer() {
+        DocumentoPz d = activo();
+        if (d != null) {
+            d.getArea().redo();
+        }
+    }
+
+    void cortar() {
+        DocumentoPz d = activo();
+        if (d != null) {
+            d.getArea().cut();
+        }
+    }
+
+    void copiar() {
+        DocumentoPz d = activo();
+        if (d != null) {
+            d.getArea().copy();
+        }
+    }
+
+    void pegar() {
+        DocumentoPz d = activo();
+        if (d != null) {
+            d.getArea().paste();
+        }
+    }
+
+    // Internos
+    private void agregar(DocumentoPz documento) {
+        Tab tab = documento.getPestana();
+        tab.setClosable(true);
+        tab.setOnCloseRequest(evento -> {                  // la X de la pestaña
+            if (!confirmarCierre(documento)) {
+                evento.consume();
+            }
+        });
+        documento.getArea().caretPositionProperty().addListener((obs, antes, ahora) -> {
+            if (activo() == documento) {
+                avisarPosicion();
+            }
+        });
+
+        pestanas.getTabs().add(tab);
+        pestanas.getSelectionModel().select(tab);
+        Platform.runLater(() -> documento.getArea().requestFocus());
+    }
+
+    private boolean guardarDocumento(DocumentoPz documento) {
+        if (documento.esNuevo()) {
+            return guardarDocumentoComo(documento);
+        }
+        return escribir(documento, documento.getRuta());
+    }
+
+    private boolean guardarDocumentoComo(DocumentoPz documento) {
+        FileChooser selector = selector("Guardar como");
+        selector.setInitialFileName(documento.getNombre());
+        if (documento.getRuta() != null && documento.getRuta().getParent() != null) {
+            selector.setInitialDirectory(documento.getRuta().getParent().toFile());
+        }
+        File archivo = selector.showSaveDialog(ventana());
+        if (archivo == null) {
+            return false;                                   // cancelo
+        }
+        return escribir(documento, conExtension(archivo.toPath()));
+    }
+
+    private boolean escribir(DocumentoPz documento, Path destino) {
+        try {
+            documento.guardarEn(destino);
+            recordarDirectorio(destino);
+            alInformar.accept("Guardado " + documento.getNombre());
+            return true;
+        } catch (IOException e) {
+            Dialogos.error(ventana(), "No se pudo guardar " + destino.getFileName(), e.getMessage());
+            return false;
+        }
+    }
+
+    // Si hay cambios sin guardar, pregunta que hacer. false significa "no cierres"
+    private boolean confirmarCierre(DocumentoPz documento) {
+        if (!documento.estaModificado()) {
+            return true;
+        }
+        pestanas.getSelectionModel().select(documento.getPestana());   // que se vea de qué archivo se habla
+        return switch (Dialogos.confirmarCambios(ventana(), documento.getNombre())) {
+            case GUARDAR -> guardarDocumento(documento);
+            case DESCARTAR -> true;
+            case CANCELAR -> false;
+        };
+    }
+
+    private void avisarPosicion() {
+        DocumentoPz d = activo();
+        if (d == null) {
+            alMoverCursor.accept(0, 0);
+        } else {
+            alMoverCursor.accept(d.getArea().getCurrentParagraph() + 1, d.getArea().getCaretColumn() + 1);
+        }
+    }
+
+    private List<DocumentoPz> documentos() {
+        List<DocumentoPz> lista = new ArrayList<>();
+        for (Tab tab : pestanas.getTabs()) {
+            lista.add((DocumentoPz) tab.getUserData());
+        }
+        return lista;
+    }
+
+    private Window ventana() {
+        return getScene() == null ? null : getScene().getWindow();
+    }
+
+    private FileChooser selector(String titulo) {
+        FileChooser selector = new FileChooser();
+        selector.setTitle(titulo);
+        selector.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Archivos PromptZal (*.pz)", "*.pz"),
+                new FileChooser.ExtensionFilter("Todos los archivos", "*.*"));
+        File inicial = directorioInicial();
+        if (inicial != null) {
+            selector.setInitialDirectory(inicial);
+        }
+        return selector;
+    }
+
+    // ultimo directorio usado.
+    private File directorioInicial() {
+        if (ultimoDirectorio != null && ultimoDirectorio.isDirectory()) {
+            return ultimoDirectorio;
+        }
+        File proyecto = new File(System.getProperty("user.dir"));
+        File ejemplos = new File(proyecto, "ejemplos");
+        if (ejemplos.isDirectory()) {
+            return ejemplos;
+        }
+        return proyecto.isDirectory() ? proyecto : null;
+    }
+
+    private void recordarDirectorio(Path archivo) {
+        if (archivo.getParent() != null) {
+            ultimoDirectorio = archivo.getParent().toFile();
+        }
+    }
+
+    // Agrega .pz por defecto
+    private static Path conExtension(Path ruta) {
+        String nombre = ruta.getFileName().toString();
+        return nombre.toLowerCase().endsWith(".pz") ? ruta : ruta.resolveSibling(nombre + ".pz");
     }
 }

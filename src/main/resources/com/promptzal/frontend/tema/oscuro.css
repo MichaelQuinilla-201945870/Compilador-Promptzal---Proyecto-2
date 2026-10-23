@@ -366,3 +366,35 @@
     -fx-text-fill: -pz-silenciado;
     -fx-text-alignment: center;
 }
+
+/* fondo del editor, boton de cierre de pestañas y diálogos  */
+
+.area-editor {
+    -fx-background-color: -pz-lienzo;
+}
+
+.tab .tab-close-button {
+    -fx-background-color: -pz-silenciado;
+}
+
+.tab .tab-close-button:hover {
+    -fx-background-color: -pz-texto;
+}
+
+.dialog-pane {
+    -fx-background-color: -pz-panel;
+}
+
+.dialog-pane > .header-panel {
+    -fx-background-color: -pz-panel;
+    -fx-border-color: transparent;
+}
+
+.dialog-pane > .header-panel > .label {
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+}
+
+.dialog-pane > .button-bar > .container {
+    -fx-background-color: -pz-panel;
+}

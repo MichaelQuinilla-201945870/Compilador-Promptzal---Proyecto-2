@@ -1,5 +1,10 @@
 package com.promptzal.frontend.ui;
 
+import com.promptzal.backend.Compilador;
+import com.promptzal.backend.ResultadoCompilacion;
+import com.promptzal.backend.errores.ErrorCompilador;
+import com.promptzal.backend.errores.TipoError;
+
 import com.promptzal.frontend.tema.Iconos;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
@@ -13,9 +18,8 @@ import javafx.scene.layout.VBox;
 import java.util.List;
 import javafx.stage.Window;
 import javafx.stage.WindowEvent;
-import com.promptzal.backend.Compilador;
-import com.promptzal.backend.ResultadoCompilacion;
-import com.promptzal.backend.errores.ErrorCompilador;
+import java.util.HashSet;
+import java.util.Set;
 
 // Ventana principal: menu arriba, tiras laterales, paneles con divisores y barra de estado.
 public class VentanaPrincipal {
@@ -117,6 +121,7 @@ public class VentanaPrincipal {
             return;
         }
         documentoCompilado = documento;
+        documento.marcarErrores(posicionesConError(resultado.errores()));
 
         // Errores, tokens, símbolos y AST
         panelInferior.mostrarResultado(resultado);
@@ -144,6 +149,17 @@ public class VentanaPrincipal {
             return "Compilación correcta";
         }
         return "Compilación terminada con " + errores + (errores == 1 ? " error" : " errores");
+    }
+
+    // Posiciones "fila:columna" de los errores sintacticos y semanticos, para subrayar su token
+    private static Set<String> posicionesConError(List<ErrorCompilador> errores) {
+        Set<String> posiciones = new HashSet<>();
+        for (ErrorCompilador error : errores) {
+            if (error.getTipo() != TipoError.LEXICO) {       // los léxicos ya se ven en vivo
+                posiciones.add(error.getFila() + ":" + error.getColumna());
+            }
+        }
+        return posiciones;
     }
 
     private void irA(int fila, int columna) {

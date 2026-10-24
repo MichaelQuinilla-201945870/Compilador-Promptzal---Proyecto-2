@@ -54,4 +54,10 @@ public class Compilador {
         }
         return tokens;
     }
+
+    // Solo la fase lexica (para el resaltado del editor)
+    public List<Token> tokenizar(String fuente) {
+        return tokenizar(fuente, new GestorErrores());
+
+    }
 }

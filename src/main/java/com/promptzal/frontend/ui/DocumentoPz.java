@@ -1,5 +1,6 @@
 package com.promptzal.frontend.ui;
 
+import com.promptzal.backend.Compilador;
 import com.promptzal.frontend.tema.Iconos;
 import javafx.scene.control.Tab;
 import javafx.scene.control.Tooltip;
@@ -10,15 +11,21 @@ import org.kordamp.ikonli.javafx.FontIcon;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.util.Set;
+import org.fxmisc.richtext.util.UndoUtils;
 
-// Un archivo abierto en el editor: su texto, su pestaña y si tiene cambios sin guardar
+// Un archivo abierto en el editor: su texto, su pestaña y si tiene cambios sin guardar (ahora tiene color)
 final class DocumentoPz {
+
+    private static final Compilador COMPILADOR = new Compilador();
 
     private final CodeArea area = new CodeArea();
     private final Tab pestana = new Tab();
     private Path ruta;                 // null mientras el archivo no se haya guardado
     private String nombreTemporal;     // "sin-titulo1.pz" mientras no tenga ruta
     private String textoGuardado;      // el texto tal como está en el disco
+    private Set<String> marcas = Set.of();   // tokens con error de la ultima compilacion
 
     private DocumentoPz(Path ruta, String nombreTemporal, String texto) {
         this.ruta = ruta;
@@ -26,10 +33,18 @@ final class DocumentoPz {
         this.textoGuardado = texto;
 
         area.setParagraphGraphicFactory(LineNumberFactory.get(area));
+        area.setUndoManager(UndoUtils.plainTextUndoManager(area));   // los colores no cuentan como cambios
         area.replaceText(texto);
         area.moveTo(0);
         area.getUndoManager().forgetHistory();      // deshacer no debe vaciar el archivo recien abierto
         area.textProperty().addListener((obs, antes, ahora) -> actualizarTitulo());
+
+        // Los colores se recalculan poco despues de que el usuario deja de escribir
+        area.multiPlainChanges().successionEnds(Duration.ofMillis(120)).subscribe(cambios -> {
+            marcas = Set.of();                      // las marcas ya no coinciden con el texto
+            resaltar();
+        });
+        resaltar();
 
         FontIcon icono = Iconos.crear(Iconos.ARCHIVO_PZ);
         icono.getStyleClass().add("icono-pz");
@@ -60,6 +75,21 @@ final class DocumentoPz {
         textoGuardado = texto;
         actualizarTitulo();
         actualizarTooltip();
+    }
+
+    // Subraya los tokens en estas posiciones ("fila:columna") hasta que el texto cambie
+    void marcarErrores(Set<String> posiciones) {
+        marcas = posiciones;
+        resaltar();
+    }
+
+    // Recalcula los colores con el lexer del compilador
+    void resaltar() {
+        String texto = area.getText();
+        if (texto.isEmpty()) {
+            return;
+        }
+        area.setStyleSpans(0, Resaltador.calcular(texto, COMPILADOR.tokenizar(texto), marcas));
     }
 
     boolean estaModificado() {

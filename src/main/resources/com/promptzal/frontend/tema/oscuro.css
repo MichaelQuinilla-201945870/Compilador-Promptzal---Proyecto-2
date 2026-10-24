@@ -495,3 +495,20 @@
     -fx-fill: -pz-sintaxis-comando;
     -fx-font-weight: bold;
 }
+
+/*  subrayado de errores en el editor */
+
+/* Token con error de la ultima compilacion: conserva su color y se subraya */
+.code-area .text.pz-error {
+    -rtfx-underline-color: -pz-error;
+    -rtfx-underline-width: 1;
+    -rtfx-underline-dash-array: 3 2;
+}
+
+/* Caracter que el lexer no reconoce: rojo y subrayado, mientras se escribe */
+.code-area .text.pz-error-lexico {
+    -fx-fill: -pz-error;
+    -rtfx-underline-color: -pz-error;
+    -rtfx-underline-width: 1;
+    -rtfx-underline-dash-array: 3 2;
+}

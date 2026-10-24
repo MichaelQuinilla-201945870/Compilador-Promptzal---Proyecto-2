@@ -53,7 +53,8 @@ public class VentanaPrincipal {
         SplitPane.setResizableWithParent(panelInferior, false);
 
         areaEditor.setAlInformar(barraEstado::setMensaje);
-        panelInferior.setAlSeleccionarError(this::irAError);
+        panelInferior.setAlIrA(this::irA);
+        panelPromptzal.setAlInformar(barraEstado::setMensaje);
 
 
         raiz.setTop(new VBox(
@@ -109,7 +110,7 @@ public class VentanaPrincipal {
         ResultadoCompilacion resultado;
         try {
             resultado = compilador.compilar(documento.getArea().getText());
-        } catch (RuntimeException e) {                       // un fallo inesperado no tiene que tumbar la interfaz
+        } catch (RuntimeException e) {                       // un fallo inesperado no debe tumbar la interfaz
             e.printStackTrace();
             Dialogos.error(raiz.getScene().getWindow(),
                     "La compilación falló de forma inesperada", String.valueOf(e));
@@ -117,12 +118,24 @@ public class VentanaPrincipal {
         }
         documentoCompilado = documento;
 
+        // Errores, tokens, símbolos y AST
+        panelInferior.mostrarResultado(resultado);
         List<ErrorCompilador> errores = resultado.errores();
-        panelInferior.mostrarErrores(errores);
         if (!errores.isEmpty()) {
             inferiorVisible.set(true);                       // si estaba oculto, se muestra
             panelInferior.seleccionarErrores();
         }
+
+        // Promptzal: se genera aunque haya errores semanticos, pero no con errores sintacticos
+        if (resultado.promptzal() != null) {
+            panelPromptzal.mostrar(resultado.promptzal(), documento.getNombre());
+            promptzalVisible.set(true);
+        } else {
+            panelPromptzal.mostrarSinPrompt(
+                    "No se generó el prompt porque el archivo tiene errores sintácticos. "
+                            + "Corrígelos y vuelve a compilar.");
+        }
+
         barraEstado.setMensaje(resumen(errores.size()));
     }
 
@@ -133,9 +146,9 @@ public class VentanaPrincipal {
         return "Compilación terminada con " + errores + (errores == 1 ? " error" : " errores");
     }
 
-    private void irAError(ErrorCompilador error) {
+    private void irA(int fila, int columna) {
         if (documentoCompilado != null) {
-            areaEditor.irA(documentoCompilado, error.getFila(), error.getColumna());
+            areaEditor.irA(documentoCompilado, fila, columna);
         }
     }
 

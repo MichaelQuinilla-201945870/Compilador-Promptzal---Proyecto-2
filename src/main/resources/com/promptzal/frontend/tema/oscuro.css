@@ -453,3 +453,45 @@
     -fx-icon-color: -pz-error;
     -fx-icon-size: 14;
 }
+
+/*  colores por categoria, arbol del AST y titulos del promptzal */
+
+/* Los mismos colores del editor, aplicados al texto de celdas del arbol y de las tablas */
+.table-cell.pz-directiva, .tree-cell.pz-directiva { -fx-text-fill: -pz-sintaxis-directiva; }
+.table-cell.pz-reservada, .tree-cell.pz-reservada { -fx-text-fill: -pz-sintaxis-reservada; }
+.table-cell.pz-comando,   .tree-cell.pz-comando   { -fx-text-fill: -pz-sintaxis-comando; }
+.table-cell.pz-conector,  .tree-cell.pz-conector  { -fx-text-fill: -pz-sintaxis-conector; }
+.table-cell.pz-cadena,    .tree-cell.pz-cadena    { -fx-text-fill: -pz-sintaxis-cadena; }
+.table-cell.pz-numero,    .tree-cell.pz-numero    { -fx-text-fill: -pz-sintaxis-numero; }
+
+/* arbol */
+.tree-view {
+    -fx-background-color: -pz-lienzo;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.tree-cell {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-text-fill: -pz-texto;
+    -fx-padding: 3 4 3 4;
+}
+
+.tree-cell:hover {
+    -fx-background-color: -pz-hover;
+}
+
+.tree-cell:selected {
+    -fx-background-color: -pz-seleccion;
+}
+
+.tree-cell .tree-disclosure-node .arrow {
+    -fx-background-color: -pz-silenciado;
+}
+
+/* titulos del promptzal (lineas que empiezan con #) */
+.code-area .text.pz-md-titulo {
+    -fx-fill: -pz-sintaxis-comando;
+    -fx-font-weight: bold;
+}

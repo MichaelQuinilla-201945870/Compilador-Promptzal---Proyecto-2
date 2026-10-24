@@ -48,7 +48,7 @@ public final class ImpresorAST {
         return sb.toString();
     }
 
-    private static String expresion(Expresion e) {
+    public static String expresion(Expresion e) {
         return e.terminos().stream()
                 .map(ImpresorAST::termino)
                 .collect(Collectors.joining(" + "));

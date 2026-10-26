@@ -15,7 +15,8 @@ import javafx.scene.input.KeyCombination;
 class BarraMenu extends MenuBar {
 
     BarraMenu(BooleanProperty proyecto, BooleanProperty promptzal, BooleanProperty inferior,
-              AreaEditor editor, Runnable compilar, Runnable salir) {
+              AreaEditor editor, Runnable compilar, AccionesReportes reportes,
+              ReadOnlyBooleanProperty hayResultado, Runnable salir) {
 
         ReadOnlyBooleanProperty hayDocumento = editor.hayDocumentoProperty();
 
@@ -52,9 +53,11 @@ class BarraMenu extends MenuBar {
                                 compilar, hayDocumento)),
 
                 new Menu("Reportes", null,
-                        pendiente("Reporte de errores", null),
-                        pendiente("Tabla de símbolos", null),
-                        pendiente("Árbol de sintaxis (AST)", null)),
+                        accion("Reporte de errores", null, reportes.errores(), hayResultado),
+                        accion("Tabla de símbolos", null, reportes.simbolos(), hayResultado),
+                        accion("Árbol de sintaxis (AST)", null, reportes.ast(), hayResultado),
+                        new SeparatorMenuItem(),
+                        accion("Generar los tres reportes", null, reportes.todos(), hayResultado)),
 
                 new Menu("Ayuda", null,
                         pendiente("Acerca de PromptZal", null)));

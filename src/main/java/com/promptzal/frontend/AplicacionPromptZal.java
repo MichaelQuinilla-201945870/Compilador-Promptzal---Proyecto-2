@@ -24,7 +24,7 @@ public class AplicacionPromptZal extends Application {
             throw new IllegalStateException("No se encontró el tema " + TEMA);
         }
 
-        VentanaPrincipal ventana = new VentanaPrincipal();
+        VentanaPrincipal ventana = new VentanaPrincipal(getHostServices());
         Scene escena = new Scene(ventana.getRaiz(), 1200, 720);
         escena.getStylesheets().add(tema.toExternalForm());
 

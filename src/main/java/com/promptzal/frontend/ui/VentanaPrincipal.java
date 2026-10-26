@@ -21,6 +21,10 @@ import javafx.stage.WindowEvent;
 import java.util.HashSet;
 import java.util.Set;
 
+import javafx.application.HostServices;
+import java.io.IOException;
+import java.nio.file.Path;
+
 // Ventana principal: menu arriba, tiras laterales, paneles con divisores y barra de estado.
 public class VentanaPrincipal {
 
@@ -48,7 +52,14 @@ public class VentanaPrincipal {
     private final Compilador compilador = new Compilador();
     private DocumentoPz documentoCompilado;      // archivo al que pertenecen los errores mostrados
 
-    public VentanaPrincipal() {
+    private final HostServices host;
+    private final GestorReportes reportes = new GestorReportes();
+    private final BooleanProperty hayResultado = new SimpleBooleanProperty(false);
+
+    public VentanaPrincipal(HostServices host) {
+
+        this.host = host;
+
         vertical.setOrientation(Orientation.VERTICAL);
 
         // Al cambiar el tamaño de la ventana, los paneles laterales conservan su tamaño
@@ -60,9 +71,15 @@ public class VentanaPrincipal {
         panelInferior.setAlIrA(this::irA);
         panelPromptzal.setAlInformar(barraEstado::setMensaje);
 
+        AccionesReportes accionesReportes = new AccionesReportes(
+                () -> abrirReporte(GestorReportes.Tipo.ERRORES),
+                () -> abrirReporte(GestorReportes.Tipo.SIMBOLOS),
+                () -> abrirReporte(GestorReportes.Tipo.AST),
+                this::generarTodosLosReportes);
 
         raiz.setTop(new VBox(
-                new BarraMenu(proyectoVisible, promptzalVisible, inferiorVisible, areaEditor, this::compilar, this::salir),
+                new BarraMenu(proyectoVisible, promptzalVisible, inferiorVisible,
+                        areaEditor, this::compilar, accionesReportes, hayResultado, this::salir),
                 new BarraHerramientas(areaEditor, this::compilar)));
 
         raiz.setLeft(crearBarraIzquierda());
@@ -122,6 +139,9 @@ public class VentanaPrincipal {
         }
         documentoCompilado = documento;
         documento.marcarErrores(posicionesConError(resultado.errores()));
+
+        reportes.actualizar(resultado, documento.getNombre());
+        hayResultado.set(true);
 
         // Errores, tokens, símbolos y AST
         panelInferior.mostrarResultado(resultado);
@@ -241,5 +261,28 @@ public class VentanaPrincipal {
             return;
         }
         vertical.setDividerPositions((alto - ALTO_INFERIOR) / alto);
+    }
+    // Genera un reporte y lo abre en el navegador
+    private void abrirReporte(GestorReportes.Tipo tipo) {
+        try {
+            Path archivo = reportes.generar(tipo);
+            host.showDocument(archivo.toUri().toString());
+            barraEstado.setMensaje("Reporte generado en " + archivo);
+        } catch (IOException e) {
+            Dialogos.error(raiz.getScene().getWindow(), "No se pudo generar el reporte", e.getMessage());
+        }
+    }
+
+    // Escribe los tres reportes y abre la carpeta dondec  se quedaron
+    private void generarTodosLosReportes() {
+        try {
+            for (GestorReportes.Tipo tipo : GestorReportes.Tipo.values()) {
+                reportes.generar(tipo);
+            }
+            host.showDocument(reportes.carpeta().toUri().toString());
+            barraEstado.setMensaje("Reportes generados en " + reportes.carpeta());
+        } catch (IOException e) {
+            Dialogos.error(raiz.getScene().getWindow(), "No se pudieron generar los reportes", e.getMessage());
+        }
     }
 }

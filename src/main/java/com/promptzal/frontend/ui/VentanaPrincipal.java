@@ -75,6 +75,7 @@ public class VentanaPrincipal {
                 () -> abrirReporte(GestorReportes.Tipo.ERRORES),
                 () -> abrirReporte(GestorReportes.Tipo.SIMBOLOS),
                 () -> abrirReporte(GestorReportes.Tipo.AST),
+                () -> abrirReporte(GestorReportes.Tipo.AFD),
                 this::generarTodosLosReportes);
 
         raiz.setTop(new VBox(

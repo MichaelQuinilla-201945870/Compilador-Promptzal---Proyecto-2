@@ -1,5 +1,6 @@
 package com.promptzal.backend.reportes;
 
+import com.promptzal.backend.lexico.Token;
 import com.promptzal.backend.ResultadoCompilacion;
 import com.promptzal.backend.ast.ConstructorArbolAst;
 import com.promptzal.backend.ast.NodoAst;
@@ -144,5 +145,10 @@ public final class GeneradorReportes {
             return "<td>—</td>";
         }
         return "<td><code>" + PaginaHtml.escapar(texto) + "</code></td>";
+    }
+
+    // Reporte del AFD. Solo necesita los tokens de la compilacion, para marcar los estados alcanzados
+    public static String afd(List<Token> tokens, String archivo, LocalDateTime fecha) {
+        return ReporteAfd.generar(tokens, archivo, fecha);
     }
 }

@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 final class GestorReportes {
 
     enum Tipo {
-        ERRORES("errores"), SIMBOLOS("simbolos"), AST("ast");
+        ERRORES("errores"), SIMBOLOS("simbolos"), AST("ast"), AFD("afd");;
 
         private final String sufijo;
 
@@ -42,7 +42,7 @@ final class GestorReportes {
             case ERRORES -> GeneradorReportes.errores(resultado, archivo, fecha);
             case SIMBOLOS -> GeneradorReportes.simbolos(resultado, archivo, fecha);
             case AST -> GeneradorReportes.ast(resultado, archivo, fecha);
-        };
+            case AFD -> GeneradorReportes.afd(resultado.tokens(), archivo, fecha);        };
         Files.createDirectories(CARPETA);
         Path destino = CARPETA.resolve(nombreBase() + "_" + tipo.sufijo() + ".html").toAbsolutePath();
         Files.writeString(destino, html);                    // UTF-8

@@ -1,5 +1,6 @@
 package com.promptzal.backend.lexico;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -47,6 +48,16 @@ public final class PalabrasClave {
         //Recibe el nombre SIN la arroba: "modelo", "rol", "formato".
         public static boolean esDirectivaValida(String nombre) {
             return DIRECTIVAS.contains(nombre);
+        }
+
+        // Todas las palabras del lenguaje con su tipo (para que el AFD dibuje un camino de estados por cada una)
+        public static Map<String, TipoToken> palabras() {
+        return Collections.unmodifiableMap(PALABRAS);
+        }
+
+        // Nombres de directiva, sin la arroba
+        public static Set<String> directivas() {
+        return DIRECTIVAS;
         }
 
 }

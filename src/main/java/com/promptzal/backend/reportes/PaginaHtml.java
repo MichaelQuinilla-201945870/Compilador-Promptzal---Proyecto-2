@@ -69,11 +69,15 @@ final class PaginaHtml {
     }
 
     static String construir(String titulo, String archivo, LocalDateTime fecha, String cuerpo) {
+        return construir(titulo, archivo, fecha, cuerpo, "");
+    }
+
+    static String construir(String titulo, String archivo, LocalDateTime fecha, String cuerpo, String estilosExtra) {
         return "<!DOCTYPE html>\n<html lang=\"es\">\n<head>\n"
                 + "<meta charset=\"UTF-8\">\n"
                 + "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
                 + "<title>" + escapar(titulo) + " - " + escapar(archivo) + "</title>\n"
-                + "<style>\n" + ESTILOS + "</style>\n</head>\n<body>\n<main>\n"
+                + "<style>\n" + ESTILOS + estilosExtra + "</style>\n</head>\n<body>\n<main>\n"
                 + "<h1>" + escapar(titulo) + "</h1>\n"
                 + "<dl class=\"meta\"><dt>Archivo</dt><dd>" + escapar(archivo) + "</dd>"
                 + "<dt>Compilado</dt><dd>" + FORMATO.format(fecha) + "</dd></dl>\n"

@@ -51,14 +51,13 @@ class BarraMenu extends MenuBar {
                 new Menu("Compilar", null,
                         accion("Compilar", new KeyCodeCombination(KeyCode.F10, KeyCombination.SHIFT_DOWN),
                                 compilar, hayDocumento)),
-
                 new Menu("Reportes", null,
                         accion("Reporte de errores", null, reportes.errores(), hayResultado),
                         accion("Tabla de símbolos", null, reportes.simbolos(), hayResultado),
                         accion("Árbol de sintaxis (AST)", null, reportes.ast(), hayResultado),
+                        accion("Autómata (AFD)", null, reportes.afd(), hayResultado),
                         new SeparatorMenuItem(),
-                        accion("Generar los tres reportes", null, reportes.todos(), hayResultado)),
-
+                        accion("Generar todos los reportes", null, reportes.todos(), hayResultado)),
                 new Menu("Ayuda", null,
                         pendiente("Acerca de PromptZal", null)));
     }
